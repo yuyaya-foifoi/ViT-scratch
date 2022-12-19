@@ -9,6 +9,7 @@ class VitInputlayer(nn.Module):
         emb_dim: int = 384,
         num_patch_row: int = 2,
         image_size: int = 32,
+        is_stride: bool = True,
     ):
 
         super(VitInputlayer, self).__init__()
@@ -18,21 +19,40 @@ class VitInputlayer(nn.Module):
         self.image_size = image_size
 
         # number of pathes
-        self.num_patch = self.num_patch_row**2
         self.patch_size = int(self.image_size // self.num_patch_row)
-
-        self.patch_emb_layer = nn.Conv2d(
-            in_channels=self.in_channels,
-            out_channels=self.emb_dim,
-            kernel_size=self.patch_size,
-            stride=self.patch_size,
-        )
 
         self.cls_token = nn.Parameter(torch.randn(1, 1, emb_dim))
 
-        self.pos_emb = nn.Parameter(
-            torch.randn(1, self.num_patch + 1, emb_dim)
-        )
+        if not is_stride:
+            self.num_patch = self.num_patch_row**2
+            self.patch_emb_layer = nn.Conv2d(
+                in_channels=self.in_channels,
+                out_channels=self.emb_dim,
+                kernel_size=self.patch_size,
+                stride=self.patch_size,
+            )
+
+            self.pos_emb = nn.Parameter(
+                torch.randn(1, self.num_patch + 1, emb_dim)
+            )
+
+        elif is_stride:
+            stride = self.patch_size - 2
+            kernel = self.patch_size
+
+            self.num_patch = int((((image_size - kernel) / stride) + 1) ** 2)
+            self.patch_emb_layer = nn.Conv2d(
+                in_channels=self.in_channels,
+                out_channels=self.emb_dim,
+                kernel_size=kernel,
+                stride=stride,
+            )
+
+            print(self.num_patch)
+
+            self.pos_emb = nn.Parameter(
+                torch.randn(1, self.num_patch + 1, emb_dim)
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

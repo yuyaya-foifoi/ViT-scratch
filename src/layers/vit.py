@@ -17,6 +17,8 @@ class Vit(nn.Module):
         head: int = 8,
         hidden_dim: int = 384 * 4,
         dropout: float = 0.0,
+        attention_activation: str = "softmax",
+        is_stride: bool = True,
     ):
 
         super(Vit, self).__init__()
@@ -26,6 +28,7 @@ class Vit(nn.Module):
             emb_dim=emb_dim,
             num_patch_row=num_patch_row,
             image_size=image_size,
+            is_stride=is_stride,
         )
 
         self.encoder = nn.Sequential(
@@ -35,6 +38,7 @@ class Vit(nn.Module):
                     head=head,
                     hidden_dim=hidden_dim,
                     dropout=dropout,
+                    attention_activation=attention_activation,
                 )
                 for _ in range(num_blocks)
             ]
@@ -48,7 +52,6 @@ class Vit(nn.Module):
 
         out = self.input_layer(x)
         out = self.encoder(out)
-        print(out.shape)
         cls_token = out[:, 0]
         pred = self.mlp_head(cls_token)
 

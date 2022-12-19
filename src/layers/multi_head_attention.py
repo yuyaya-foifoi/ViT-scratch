@@ -4,12 +4,19 @@ import torch.nn.functional as F
 
 
 class MultiHeadSelfAttention(nn.Module):
-    def __init__(self, emb_dim: int = 384, head: int = 3, dropout: float = 0):
+    def __init__(
+        self,
+        emb_dim: int = 384,
+        head: int = 3,
+        dropout: float = 0,
+        attention_activation: str = "softmax",
+    ):
         super(MultiHeadSelfAttention, self).__init__()
         self.head = head
         self.emb_dim = emb_dim
         self.head_dim = emb_dim // head
         self.sqrt_dh = self.head_dim**0.5
+        self.attention_activation = attention_activation
 
         self.w_q = nn.Linear(emb_dim, emb_dim, bias=False)
         self.w_k = nn.Linear(emb_dim, emb_dim, bias=False)
@@ -40,10 +47,20 @@ class MultiHeadSelfAttention(nn.Module):
         k_T = k.transpose(2, 3)
         dots = (q @ k_T) / self.sqrt_dh
 
-        attn = F.softmax(dots, dim=-1)
-        attn = self.attn_drop(attn)
+        if self.attention_activation == "softmax":
 
-        out = attn @ v
+            attn = F.softmax(dots, dim=-1)
+            attn = self.attn_drop(attn)
+
+            out = attn @ v
+
+        elif self.attention_activation == "rela":
+            ln = nn.LayerNorm([self.head, num_patch, self.head_dim])
+            attn = F.relu(dots)
+            attn = self.attn_drop(attn)
+
+            out = ln(attn @ v)
+
         out = out.transpose(1, 2)
         out = out.reshape(batch_size, num_patch, self.emb_dim)
 

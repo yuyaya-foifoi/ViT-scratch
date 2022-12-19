@@ -10,12 +10,16 @@ class VitEncoderBlock(nn.Module):
         head: int = 8,
         hidden_dim: int = 384 * 4,
         dropout: float = 0.0,
+        attention_activation: str = "softmax",
     ):
         super(VitEncoderBlock, self).__init__()
 
         self.ln1 = nn.LayerNorm(emb_dim)
         self.msa = MultiHeadSelfAttention(
-            emb_dim=emb_dim, head=head, dropout=dropout
+            emb_dim=emb_dim,
+            head=head,
+            dropout=dropout,
+            attention_activation=attention_activation,
         )
         self.ln2 = nn.LayerNorm(emb_dim)
 
